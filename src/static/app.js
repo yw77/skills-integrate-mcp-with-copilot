@@ -3,6 +3,65 @@ document.addEventListener("DOMContentLoaded", () => {
   const activitySelect = document.getElementById("activity");
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
+  const authStatus = document.getElementById("auth-status");
+  const userMenuBtn = document.getElementById("user-menu-btn");
+  const authMenu = document.getElementById("auth-menu");
+  const loginModal = document.getElementById("login-modal");
+  const openLoginBtn = document.getElementById("open-login-btn");
+  const closeAuthMenuBtn = document.getElementById("close-auth-menu-btn");
+  const cancelLoginBtn = document.getElementById("cancel-login-btn");
+  const loginForm = document.getElementById("login-form");
+  const logoutBtn = document.getElementById("logout-btn");
+  const authMenuState = document.getElementById("auth-menu-state");
+
+  let isTeacherLoggedIn = false;
+  let teacherUsername = null;
+
+  function showMessage(text, type) {
+    messageDiv.textContent = text;
+    messageDiv.className = type;
+    messageDiv.classList.remove("hidden");
+
+    setTimeout(() => {
+      messageDiv.classList.add("hidden");
+    }, 5000);
+  }
+
+  function updateAuthUi() {
+    if (isTeacherLoggedIn) {
+      authStatus.textContent = `Teacher logged in: ${teacherUsername}`;
+      authMenuState.textContent = `Logged in as ${teacherUsername}`;
+      openLoginBtn.classList.add("hidden");
+      logoutBtn.classList.remove("hidden");
+    } else {
+      authStatus.textContent = "Students can view registrations. Teachers must log in to register/unregister.";
+      authMenuState.textContent = "Not logged in";
+      openLoginBtn.classList.remove("hidden");
+      logoutBtn.classList.add("hidden");
+    }
+  }
+
+  async function refreshAuthStatus() {
+    try {
+      const response = await fetch("/auth/status");
+      const data = await response.json();
+      isTeacherLoggedIn = data.authenticated;
+      teacherUsername = data.username;
+    } catch (error) {
+      isTeacherLoggedIn = false;
+      teacherUsername = null;
+      console.error("Error checking auth status:", error);
+    }
+    updateAuthUi();
+  }
+
+  function openModal(modal) {
+    modal.classList.remove("hidden");
+  }
+
+  function closeModal(modal) {
+    modal.classList.add("hidden");
+  }
 
   // Function to fetch activities from API
   async function fetchActivities() {
@@ -86,26 +145,15 @@ document.addEventListener("DOMContentLoaded", () => {
       const result = await response.json();
 
       if (response.ok) {
-        messageDiv.textContent = result.message;
-        messageDiv.className = "success";
+        showMessage(result.message, "success");
 
         // Refresh activities list to show updated participants
         fetchActivities();
       } else {
-        messageDiv.textContent = result.detail || "An error occurred";
-        messageDiv.className = "error";
+        showMessage(result.detail || "An error occurred", "error");
       }
-
-      messageDiv.classList.remove("hidden");
-
-      // Hide message after 5 seconds
-      setTimeout(() => {
-        messageDiv.classList.add("hidden");
-      }, 5000);
     } catch (error) {
-      messageDiv.textContent = "Failed to unregister. Please try again.";
-      messageDiv.className = "error";
-      messageDiv.classList.remove("hidden");
+      showMessage("Failed to unregister. Please try again.", "error");
       console.error("Error unregistering:", error);
     }
   }
@@ -130,31 +178,79 @@ document.addEventListener("DOMContentLoaded", () => {
       const result = await response.json();
 
       if (response.ok) {
-        messageDiv.textContent = result.message;
-        messageDiv.className = "success";
+        showMessage(result.message, "success");
         signupForm.reset();
 
         // Refresh activities list to show updated participants
         fetchActivities();
       } else {
-        messageDiv.textContent = result.detail || "An error occurred";
-        messageDiv.className = "error";
+        showMessage(result.detail || "An error occurred", "error");
       }
-
-      messageDiv.classList.remove("hidden");
-
-      // Hide message after 5 seconds
-      setTimeout(() => {
-        messageDiv.classList.add("hidden");
-      }, 5000);
     } catch (error) {
-      messageDiv.textContent = "Failed to sign up. Please try again.";
-      messageDiv.className = "error";
-      messageDiv.classList.remove("hidden");
+      showMessage("Failed to sign up. Please try again.", "error");
       console.error("Error signing up:", error);
     }
   });
 
+  userMenuBtn.addEventListener("click", () => {
+    openModal(authMenu);
+  });
+
+  closeAuthMenuBtn.addEventListener("click", () => {
+    closeModal(authMenu);
+  });
+
+  openLoginBtn.addEventListener("click", () => {
+    closeModal(authMenu);
+    openModal(loginModal);
+  });
+
+  cancelLoginBtn.addEventListener("click", () => {
+    closeModal(loginModal);
+  });
+
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const username = document.getElementById("teacher-username").value;
+    const password = document.getElementById("teacher-password").value;
+
+    try {
+      const response = await fetch(
+        `/auth/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+        { method: "POST" }
+      );
+      const data = await response.json();
+
+      if (response.ok) {
+        showMessage(data.message, "success");
+        loginForm.reset();
+        closeModal(loginModal);
+        await refreshAuthStatus();
+      } else {
+        showMessage(data.detail || "Login failed", "error");
+      }
+    } catch (error) {
+      showMessage("Login failed. Please try again.", "error");
+      console.error("Error logging in:", error);
+    }
+  });
+
+  logoutBtn.addEventListener("click", async () => {
+    try {
+      const response = await fetch("/auth/logout", { method: "POST" });
+      const data = await response.json();
+      if (response.ok) {
+        showMessage(data.message, "success");
+      }
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+
+    closeModal(authMenu);
+    await refreshAuthStatus();
+  });
+
   // Initialize app
+  refreshAuthStatus();
   fetchActivities();
 });

@@ -8,8 +8,12 @@
   </head>
   <body>
     <header>
+      <div class="header-actions">
+        <button id="user-menu-btn" class="user-menu-btn" type="button">User</button>
+      </div>
       <h1>Mergington High School</h1>
       <h2>Extracurricular Activities</h2>
+      <p id="auth-status" class="auth-status">Checking teacher login status...</p>
     </header>
 
     <main>
@@ -44,6 +48,36 @@
     <footer>
       <p>&copy; 2026 Mergington High School</p>
     </footer>
+
+    <div id="auth-menu" class="modal hidden" aria-hidden="true">
+      <div class="modal-content">
+        <h3>Teacher Access</h3>
+        <p id="auth-menu-state">Not logged in</p>
+        <button id="open-login-btn" type="button">Login</button>
+        <button id="logout-btn" type="button" class="hidden">Logout</button>
+        <button id="close-auth-menu-btn" type="button" class="secondary">Close</button>
+      </div>
+    </div>
+
+    <div id="login-modal" class="modal hidden" aria-hidden="true">
+      <div class="modal-content">
+        <h3>Teacher Login</h3>
+        <form id="login-form">
+          <div class="form-group">
+            <label for="teacher-username">Username:</label>
+            <input type="text" id="teacher-username" required />
+          </div>
+          <div class="form-group">
+            <label for="teacher-password">Password:</label>
+            <input type="password" id="teacher-password" required />
+          </div>
+          <div class="modal-actions">
+            <button type="submit">Login</button>
+            <button id="cancel-login-btn" type="button" class="secondary">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <script src="app.js"></script>
   </body>
